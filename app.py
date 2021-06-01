@@ -24,7 +24,7 @@ def remove_comma(df_h_sort, headername):
 
     """Remove Comma in any numeric file"""
 
-    df_h_sort[headername] = df_h_sort[headername].apply(lambda x: x.replace(',', '')).astype('float32').apply(lambda x: "%.4f" % x)
+    df_h_sort[headername] = df_h_sort[headername].apply(lambda x: x.replace(',', '')).astype('float64').apply(lambda x: "%.4f" % x).astype('float64')
     return df_h_sort
 
 
@@ -47,9 +47,19 @@ if __name__ == '__main__':
     
     #df_pivot = pd.pivot_table(df,index=['SecurityID'],columns=['EffectiveDate'],values=['TotalMarketValue'],aggfunc=[np.sum],fill_value=0)
     #df_pivot.columns = ['_'.join((j,k,i)) for i,j,k in df_pivot.columns]
-  
-    df_h_sort['mvpreacc'] = df_h_sort['Face'].apply(lambda x: x.replace(',', '')).astype('float32') * df_h_sort['Price']
-    df_h_sort['tmvrc'] = df_h_sort['mvpreacc'] + df_h_sort['Accrued'].apply(lambda x: x.replace(',', '')).astype('float32')
+    
+    """Calculate Market value of the instruments of the day"""
+    df_h_sort['mvpreacc'] = df_h_sort['Face'] * df_h_sort['Price']
+    
+    """Re-Calculate Total Market Value for Data Quality check"""
+    df_h_sort['tmvrc'] = df_h_sort['mvpreacc'] + df_h_sort['Accrued']
+
+    """Data Quatlity check 1, check Total market value is equal to calculated market value"""
+    if df_h_sort['tmvrc'] - df_h_sort['TotalMarketValue'] == 0:
+        df_h_sort['dq'] = 0
+    else: 
+        df_h_sort['dq'] = 1
+    
     print(df_h_sort)
     print(df_h_sort.dtypes)
     # print(df_sort['TotalMarketValuepreAccrued'].apply(lambda x: "%.4f" % x))
