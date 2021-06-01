@@ -1,0 +1,3 @@
+﻿Description,Asset Identifier,ISIN,Cusip,Asset Sub-Class,Asset Sub-type,Cost Currency,DealDate,Settlement/Start Date,Nominal,Price,NetConsideration,Accrued,Buy Currency
+Sell Anheuser-busch Inbev 3.25% 24-jan-2033,BE6248644013,BE6248644013,,Fixed,Fixed,EUR,28-Jan-21,01-Feb-21,"-2,000,000",127.51,"-2,551,115","-1,425",EUR
+"Sell Burlington Northern Santa Fe, Llc 3.00% 01-apr-2025",US12189LAV36,US12189LAV36,12189LAV3,Fixed,Fixed,USD,28-Jan-21,01-Feb-21,"-2,000,000",108.8,"-2,195,565","-20,000",USD
