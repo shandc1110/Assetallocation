@@ -38,6 +38,13 @@ def remove_comma(df_h_sort, headername):
     return df_h_sort
 
 
+def group_by_assetclass(df_h_sort):
+
+    df_a_pivot = pd.pivot_table(df_h_sort, index = ['AssetClass'], columns=['EffectiveDate'],values=['TotalMarketValue','Face'],aggfunc=[np.sum],fill_value=0)
+    df_a_pivot.columns = ['_'.join((j,k,i)) for i,j,k in df_a_pivot.columns]
+    df_a_pivot['Face Movement'] = df_a_pivot['Face_28-Jan-21_sum'] - df_a_pivot['Face_27-Jan-21_sum']
+    df_a_pivot['Total MarketValue Movement'] = df_a_pivot['TotalMarketValue_28-Jan-21_sum'] - df_a_pivot['TotalMarketValue_27-Jan-21_sum'] 
+    return df_a_pivot
 
 def calculate_return(df_h_sort):
 
@@ -59,7 +66,7 @@ def calculate_movement(df_pivot,df_t_sort):
 
     transactions_fromholdings = df_pivot[df_pivot['movement'] != 0]
 
-    compare_result = pd.merge(transactions_fromholdings,df_t_sort, how='outer',on='SecurityID')
+    compare_result = pd.merge(transactions_fromholdings, df_t_sort, how='outer',on='SecurityID')
     notintransaction = compare_result[(compare_result['Nominal'] - compare_result['movement']) !=0 ] 
 
     return notintransaction
@@ -73,6 +80,14 @@ def import_to_database(table_name, schema, jobs_df):
         chunksize=500,
         dtype=schema
     )
+
+def calculate_sales_price(df_t_sort,df_h_sort):
+   
+    df_t = pd.merge(df_t_sort,df_h_sort,left_on=['SecurityID','DealDate'],right_on=['SecurityID','EffectiveDate'],how = 'left')
+    df_t['Dif'] =df_t['Price_x'] - df_t['Price_y']
+
+    return df_t
+
 
 HOLDINGS_SCHEMA = {
     'EffectiveDate':        String(50),
@@ -141,6 +156,43 @@ EXCEPTIONS_SCHEMA = {
     'Buy Currency':                         String(50)
     }
 
+DIFFERENCES_RECALC_SCHEMA = {
+    'Description_x':             String(200),
+    'SecurityID':                String(50),
+    'ISIN':                      String(50),
+    'Cusip':                     String(50),
+    'Asset Sub-Class':           String(50),
+    'Asset Sub-type':            String(50),
+    'Cost Currency':             String(50),
+    'DealDate':                  String(50),
+    'Settlement/Start Date':     String(50),
+    'Nominal':                   Float,
+    'Price_x':                   Float,
+    'NetConsideration':          Float,
+    'Accrued_x':                 Float,
+    'Buy Currency':              String(50),
+    'EffectiveDate':             String(50),
+    'Description_y':             String(200),
+    'AssetClass':                String(50),
+    'SubClass':                  String(50),
+    'Currency':                  String(50),
+    'Face':                      Float,
+    'Price_y':                   Float,
+    'TotalMarketValue':          Float,
+    'Accrued_y':                 Float,
+    'Dif':                       Float,
+    }
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':    
 
@@ -170,7 +222,10 @@ if __name__ == '__main__':
 
     df_pivot = calculate_return(df_h_sort)
    
-    
+    df_a_pivot = group_by_assetclass(df_h_sort)
+
+
+    df_t = calculate_sales_price(df_t_sort,df_h_sort)
     """Create transactions_fromholdings table to extract all Face value movement during 2 days"""
     
     notintransaction = calculate_movement(df_pivot, df_t_sort)
@@ -188,22 +243,38 @@ if __name__ == '__main__':
     import_to_database("transactions", TRANSACTION_SCHEMA, df_t_sort)
     import_to_database('return', RETURN_CALCULATION_SCHEMA, df_pivot)
     import_to_database('exceptions',EXCEPTIONS_SCHEMA, notintransaction)
+    import_to_database('salesrecalc',DIFFERENCES_RECALC_SCHEMA,df_t)
     
-    print('=================================================================')
+    transactions_fromholdings = df_pivot[df_pivot['movement'] != 0]
+
+    print('==========================================================================================================================')
     print('Print Holdings information with data quality check and recalculation')
     print(df_h_sort)
    
+    print('==========================================================================================================================')
     print('Print Transaction information with sorting by DealDate')
     print(df_t_sort)
     
+    print('==========================================================================================================================')
     print('Print Holdings information with return calculated')
     print(df_pivot)
     
+    print('==========================================================================================================================')
     print('Print transactions identified from Holdings')
     print(transactions_fromholdings)
     
+    print('==========================================================================================================================')
     print('Compare Transactions identified from Holdings with Transactions table provided to identify differences')
     print(notintransaction)
-   
+    
+    print('==========================================================================================================================')
+    print('Compare Face/MarketValue Movement by Asset Class by Date')
+    print(df_a_pivot)
+    
+    print('==========================================================================================================================')
+    print('Calculate the actual transaction price with market price of that date')
+    print(df_t)
+ 
+    
    
     
